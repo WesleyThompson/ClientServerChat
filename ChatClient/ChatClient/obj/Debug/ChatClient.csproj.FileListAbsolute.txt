@@ -1,0 +1,6 @@
+D:\ClientServerChat\ChatClient\ChatClient\bin\Debug\ChatClient.exe.config
+D:\ClientServerChat\ChatClient\ChatClient\bin\Debug\ChatClient.exe
+D:\ClientServerChat\ChatClient\ChatClient\bin\Debug\ChatClient.pdb
+D:\ClientServerChat\ChatClient\ChatClient\obj\Debug\ChatClient.csprojResolveAssemblyReference.cache
+D:\ClientServerChat\ChatClient\ChatClient\obj\Debug\ChatClient.exe
+D:\ClientServerChat\ChatClient\ChatClient\obj\Debug\ChatClient.pdb
