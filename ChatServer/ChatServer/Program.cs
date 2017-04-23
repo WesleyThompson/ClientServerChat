@@ -36,9 +36,13 @@ namespace ChatServer
                     counter++;
                     client = server.AcceptTcpClient();
                     Console.WriteLine("Client #" + counter + " entered the chat!");
-
-
+                    ClientHandler clientHandle = new ClientHandler();
+                    clientHandle.StartClient(client, counter.ToString());
                 }
+
+                client.Close();
+                server.Stop();
+                Console.WriteLine("Ending chat server");
             }
             catch(SocketException e)
             {
