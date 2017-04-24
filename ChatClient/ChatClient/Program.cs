@@ -155,11 +155,13 @@ namespace ChatClient
 
                 data = new byte[1024];
                 string responseData = String.Empty;
+                Console.WriteLine("waddup1");
                 Int32 bytes = serverStream.Read(data, 0, data.Length);
+                Console.WriteLine("waddup2");
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Console.WriteLine("Server: " + responseData);
 
-                serverStream.Close();
+                //serverStream.Close();
             }
             catch(Exception e)
             {
