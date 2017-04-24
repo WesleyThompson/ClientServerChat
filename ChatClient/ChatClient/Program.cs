@@ -10,6 +10,10 @@ namespace ChatClient
 {
     class Program
     {
+        static TcpClient clientSocket;
+        static String userId = null;
+        static String password = null;
+
         static void Main(string[] args)
         {
             bool runFlag = true;
@@ -18,19 +22,7 @@ namespace ChatClient
             Int32 port = 12149;
             string local = "127.0.0.1";
 
-            TcpClient clientSocket;
-            NetworkStream serverStream;
-
-            try
-            {
-                clientSocket = new TcpClient(local, port);
-
-                serverStream = clientSocket.GetStream();
-            }
-            catch(Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            ConnectToServer(port, local);
 
             Console.WriteLine("Welcome to WesChat!");
             Console.WriteLine("Type help for available chat commands.");
@@ -42,12 +34,6 @@ namespace ChatClient
 
                 switch (input)
                 {
-                    case "login":
-                        break;
-
-                    case "send all":
-                        break;
-
                     case "who":
                         break;
 
@@ -63,9 +49,121 @@ namespace ChatClient
                         break;
 
                     default:
-                        Console.WriteLine("Could not understand the command: " + input);
+                        if(input.StartsWith("send all "))
+                        {
+                            string message = RemoveString(input, "send all ");
+                            SendMessage(message);
+                        }
+
+                        else if(input.StartsWith("login "))
+                        {
+                            string loginStuff = RemoveString(input, "login ");
+                            
+                            
+
+                            ExtractLogin(ref userId, ref password, loginStuff);
+
+                            //TODO remove this
+                            Console.WriteLine("UserId: " + userId);
+                            Console.WriteLine("Password: " + password);
+
+                            if(userId == null || password == null)
+                            {
+                                break;
+                            }
+
+                        }
+
+                        else
+                        {
+                            Console.WriteLine("Could not understand the command: " + input);
+                        }
                         break;
                 }
+            }
+        }
+
+        private static string RemoveString(string input, string removal)
+        {
+            int index = input.IndexOf(removal);
+            string message = (index < 0)
+                ? input
+                : input.Remove(index, removal.Length);
+
+            return message;
+        }
+
+        private static void ExtractLogin(ref String userId, ref String password, string loginStuff)
+        {
+            //Error checking
+            string[] stringSeparators = new string[] { " " };
+            string[] inputs = loginStuff.Split(stringSeparators, StringSplitOptions.None);
+
+            if (inputs.Length < 2 || inputs.Length > 2)
+            {
+                Console.WriteLine("Incorrect number of login arguments. Try again.");
+            }
+
+            foreach (string input in inputs)
+            {
+                if (String.IsNullOrEmpty(input) || String.IsNullOrWhiteSpace(input))
+                {
+                    Console.WriteLine("Empty or missing login arguments.");
+                    break;
+                }
+
+                if (userId == null)
+                {
+                    userId = input;
+                }
+                else if (password == null)
+                {
+                    password = input;
+                }
+            }
+        }
+
+        private static void ConnectToServer(Int32 port, string server)
+        {
+            try
+            {
+                clientSocket = new TcpClient();
+                clientSocket.Connect(server, port);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            
+        }
+
+        private static void SendMessage(string message)
+        {
+            if(userId == null || password == null)
+            {
+                Console.WriteLine("Please login before sending a message.");
+                return;
+            }
+
+            try
+            {
+                NetworkStream serverStream = clientSocket.GetStream();
+                Byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
+                serverStream.Write(data, 0, data.Length);
+                Console.WriteLine(userId + ": " + message);
+
+                data = new byte[1024];
+                string responseData = String.Empty;
+                Int32 bytes = serverStream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                Console.WriteLine("Server: " + responseData);
+
+                serverStream.Close();
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
     }
