@@ -10,43 +10,46 @@ namespace ChatServer
 {
     class ClientHandler
     {
-        TcpClient socket;
-        string clientName;
-
-        public void StartClient(TcpClient inSocket, string clientName)
+        TcpClient clientSocket;
+        string clNo;
+        public void startClient(TcpClient inClientSocket, string clineNo)
         {
-            this.socket = inSocket;
-            this.clientName = clientName;
-
-            //Threaded
-            Thread clientThread = new Thread(StartChat);
-            clientThread.Start();
+            this.clientSocket = inClientSocket;
+            this.clNo = clineNo;
+            Thread ctThread = new Thread(doChat);
+            ctThread.Start();
         }
-
-
-        private void StartChat()
+        private void doChat()
         {
-            //Restricting to 1024 cuz idk I wanna
-            Byte[] buffer = new Byte[1024];
-            string data;
+            int requestCount = 0;
+            byte[] bytesFrom = new byte[10025];
+            string dataFromClient = null;
+            Byte[] sendBytes = null;
+            string serverResponse = null;
+            string rCount = null;
+            requestCount = 0;
 
-            while(true)
+            while ((true))
             {
                 try
                 {
-                    NetworkStream netStream = socket.GetStream();
-                    netStream.Read(buffer, 0, buffer.Length);
+                    requestCount = requestCount + 1;
+                    NetworkStream networkStream = clientSocket.GetStream();
+                    networkStream.Read(bytesFrom, 0, (int)clientSocket.ReceiveBufferSize);
+                    dataFromClient = System.Text.Encoding.ASCII.GetString(bytesFrom);
+                    dataFromClient = dataFromClient.Substring(0, dataFromClient.IndexOf("$"));
+                    Console.WriteLine(" >> " + "From client-" + clNo + dataFromClient);
 
-                    data = System.Text.Encoding.ASCII.GetString(buffer);
-                    data = data.Substring(0); //left a piece off
-
-                    Console.WriteLine(clientName + ": " + data);
-
-                    netStream.Flush();
+                    rCount = Convert.ToString(requestCount);
+                    serverResponse = "Server to clinet(" + clNo + ") " + rCount;
+                    sendBytes = Encoding.ASCII.GetBytes(serverResponse);
+                    networkStream.Write(sendBytes, 0, sendBytes.Length);
+                    networkStream.Flush();
+                    Console.WriteLine(" >> " + serverResponse);
                 }
-                catch(Exception e)
+                catch (Exception ex)
                 {
-                    Console.WriteLine(e);
+                    Console.WriteLine(" >> " + ex.ToString());
                 }
             }
         }

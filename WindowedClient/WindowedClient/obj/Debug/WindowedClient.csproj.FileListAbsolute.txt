@@ -1,0 +1,1 @@
+D:\ClientServerChat\WindowedClient\WindowedClient\bin\Debug\WindowedClient.exe.config
