@@ -29,7 +29,7 @@ namespace ChatServer
             string rCount = null;
             requestCount = 0;
 
-            while ((true))
+            while (true)
             {
                 try
                 {

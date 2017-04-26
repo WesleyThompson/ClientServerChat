@@ -13,8 +13,6 @@ namespace ChatClient
         static TcpClient clientSocket = new TcpClient();
         static NetworkStream serverStream = default(NetworkStream);
 
-        static string readData = null;
-
         static Thread clientThread = null;
         static bool isRunning = true;
         static string thisID = null;
@@ -34,6 +32,7 @@ namespace ChatClient
                 if(input.Equals("exit"))
                 {
                     isRunning = false;
+                    clientThread.Abort();
                     break;
                 }
 
@@ -57,11 +56,12 @@ namespace ChatClient
             {
                 Console.Write("Connecting to Wes Chat ... ");
                 clientSocket.Connect(ipAddress, port);
-                serverStream = clientSocket.GetStream();
 
-                clientThread = new Thread(getMessage);
+                //Start a background thread that outputs text to the console while we are typing etc
+                clientThread = new Thread(GetMessage);
                 clientThread.Start();
                 clientThread.IsBackground = true;
+
                 connectedToServer = true;
                 Console.WriteLine("Connected");
             }
@@ -71,7 +71,7 @@ namespace ChatClient
             }
         }
 
-        private static void getMessage()
+        private static void GetMessage()
         {
             while(connectedToServer && clientSocket.Connected)
             {
@@ -88,13 +88,14 @@ namespace ChatClient
                         break;
                     }
 
-                    string returndata = System.Text.Encoding.ASCII.GetString(buffer);
-                    returndata = returndata.Substring(0, returndata.IndexOf("\0"));
-                    Console.WriteLine(returndata);
+                    string returnData = System.Text.Encoding.ASCII.GetString(buffer);
+                    returnData = returnData.Substring(0, returnData.IndexOf("\0"));
+
+                    Console.WriteLine(returnData);
                 }
-                catch (Exception ex)
+                catch (Exception e)
                 {
-                    Console.WriteLine(ex.ToString());
+                    Console.WriteLine(e);
                 }
             }
         }
