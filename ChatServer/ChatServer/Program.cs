@@ -71,6 +71,10 @@ namespace ChatServer
             {
                 Console.WriteLine("SocketException: {0}", e);
             }
+            catch(Exception e)
+            {
+                Console.WriteLine(e);
+            }
             finally
             {
                 // Stop listening for new clients.

@@ -8,88 +8,89 @@ using System.Net;
 
 namespace ChatClient
 {
-    public partial class Program
+    public class Program
     {
-        static System.Net.Sockets.TcpClient clientSocket = new System.Net.Sockets.TcpClient();
+        static TcpClient clientSocket = new TcpClient();
         static NetworkStream serverStream = default(NetworkStream);
-        string readData = null;
-        public static Thread ctThread = null;
-        public static bool stillAlive = true;
-        public static string thisID = null;
-        public static bool connectedToServer = false;
-        public static bool madeConnection = false;
+
+        static string readData = null;
+
+        static Thread clientThread = null;
+        static bool isRunning = true;
+        static string thisID = null;
+        static bool connectedToServer = false;
+
+        static Int32 byteLimit = 1024;
+        static int port = 12149;
+        static string ipAddress = "127.0.0.1";
 
         static void Main(string[] args)
         {
+            Connect();
 
-            Console.CancelKeyPress += new ConsoleCancelEventHandler(myHandler);
-            Program t = new Program();
-            t.button2_Click();
-
-            while (stillAlive)
+            while(isRunning)
             {
-                t.button1_Click();
-            }
-        }
+                String input = Console.ReadLine();
+                if(input.Equals("exit"))
+                {
+                    isRunning = false;
+                    break;
+                }
 
-        private void button1_Click()
-        {
-            String s = Console.ReadLine();
-            byte[] outStream = System.Text.Encoding.ASCII.GetBytes(s + "$");
-            if (!(outStream.Length == 1))
-            {
+                Byte[] output = Encoding.ASCII.GetBytes(input + "$");
+
                 try
                 {
-                    serverStream.Write(outStream, 0, outStream.Length);
+                    serverStream.Write(output, 0, output.Length);
                     serverStream.Flush();
                 }
-                catch (Exception ex)
+                catch(Exception e)
                 {
-                    Console.WriteLine(ex.ToString());
+                    Console.WriteLine(e);
                 }
             }
         }
 
-        private void button2_Click()
+        private static void Connect()
         {
-            readData = "Conected to Chat Server ...";
-            msg();
-            //String s = Console.ReadLine();
-            clientSocket.Connect("127.0.0.1", 12149);
-            serverStream = clientSocket.GetStream();
+            try
+            {
+                Console.Write("Connecting to Wes Chat ... ");
+                clientSocket.Connect(ipAddress, port);
+                serverStream = clientSocket.GetStream();
 
-            //byte[] outStream = System.Text.Encoding.ASCII.GetBytes(s + "$");
-            //serverStream.Write(outStream, 0, outStream.Length);
-            //serverStream.Flush();
-
-            ctThread = new Thread(getMessage);
-            ctThread.Start();
-            ctThread.IsBackground = true;
-            connectedToServer = true;
+                clientThread = new Thread(getMessage);
+                clientThread.Start();
+                clientThread.IsBackground = true;
+                connectedToServer = true;
+                Console.WriteLine("Connected");
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
-        private void getMessage()
+        private static void getMessage()
         {
-            int read = 1;
-            while (read > 0 && connectedToServer && clientSocket.Connected == true)
+            while(connectedToServer && clientSocket.Connected)
             {
                 try
                 {
                     serverStream = clientSocket.GetStream();
 
-                    int buffSize = 0;
-                    byte[] inStream = new byte[10025];
-                    buffSize = clientSocket.ReceiveBufferSize;
-                    read = serverStream.Read(inStream, 0, 10025);
-                    if (read <= 0)
+                    byte[] buffer = new byte[byteLimit];
+
+                    int readStatus = serverStream.Read(buffer, 0, byteLimit);
+                    if (readStatus <= 0)
                     {
                         connectedToServer = false;
                         break;
                     }
-                    string returndata = System.Text.Encoding.ASCII.GetString(inStream);
+
+                    string returndata = System.Text.Encoding.ASCII.GetString(buffer);
                     returndata = returndata.Substring(0, returndata.IndexOf("\0"));
-                    readData = "" + returndata;
-                    msg();
+                    Console.WriteLine(returndata);
                 }
                 catch (Exception ex)
                 {
@@ -97,33 +98,5 @@ namespace ChatClient
                 }
             }
         }
-
-        private void msg()
-        {
-            //if (this.InvokeRequired)
-            //    this.Invoke(new MethodInvoker(msg));
-            //else
-            Console.WriteLine(readData);
-            //textBox1.Text = textBox1.Text + Environment.NewLine + " >> " + readData;
-        }
-
-        protected static void myHandler(object sender, ConsoleCancelEventArgs args)
-        {
-            if (ctThread.IsAlive)
-            {
-                ctThread.Abort();
-            }
-            clientSocket.Close();
-            // Set the Cancel property to true to prevent the process from terminating.
-            //Console.WriteLine("Setting the Cancel property to true...");
-
-            //args.Cancel = true;
-            stillAlive = false;
-
-            // Announce the new value of the Cancel property.
-            //Console.WriteLine("  Cancel property: {0}", args.Cancel);
-            //Console.WriteLine("The read operation will resume...\n");
-        }
-
     }
 }
