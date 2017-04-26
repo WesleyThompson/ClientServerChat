@@ -10,6 +10,8 @@ namespace ChatServer
     {
         TcpClient clientSocket;
         string clNo;
+        volatile static List<string> who = new List<string>();
+
         public void startClient(TcpClient inClientSocket, string clineNo)
         {
             this.clientSocket = inClientSocket;
@@ -54,6 +56,14 @@ namespace ChatServer
 
                     switch(dataFromClient)
                     {
+                        case "who":
+                            serverResponse = String.Empty;
+                            foreach(string person in who)
+                            {
+                                serverResponse += person + " ";
+                            }
+                            break;
+
                         default:
                             if(dataFromClient.StartsWith("login "))
                             {
@@ -78,6 +88,7 @@ namespace ChatServer
                                         if (pass.Equals(password))
                                         {
                                             serverResponse = "Login Accepted.";
+                                            who.Add(username);
                                         }
                                     }
                                     else
