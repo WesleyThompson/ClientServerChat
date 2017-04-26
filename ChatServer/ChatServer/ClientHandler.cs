@@ -33,7 +33,10 @@ namespace ChatServer
 
             Dictionary<string, string> users = new Dictionary<string, string>()
             {
-                { "Tom" , "Tom11"}
+                { "Tom", "Tom11"},
+                { "David", "David22"},
+                { "Beth", "Beth33"},
+                { "John", "John44"}
             };
 
             while (true)
@@ -55,16 +58,33 @@ namespace ChatServer
                             if(dataFromClient.StartsWith("login "))
                             {
                                 string loginStuff = RemoveString(dataFromClient, "login ");
+                                username = null;
+                                password = null;
                                 ExtractLogin(ref username, ref password, loginStuff);
+
+                                Console.WriteLine(username + " " + password);
 
                                 if (username == null || password == null)
                                 {
-                                    serverResponse = "Login missing username or password.";
+                                    serverResponse = "Login Failed.";
                                 }
                                 else
                                 {
+                                    string pass;
+                                    if(users.TryGetValue(username, out pass))
+                                    {
+                                        serverResponse = "Login Failed.";
+
+                                        if (pass.Equals(password))
+                                        {
+                                            serverResponse = "Login Accepted.";
+                                        }
+                                    }
+                                    else
+                                    {
+                                        serverResponse = "Login Failed.";
+                                    }
                                     
-                                    serverResponse = "Login confirmed.";
                                 }
                             }
                             else
