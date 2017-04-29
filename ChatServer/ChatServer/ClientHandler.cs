@@ -10,7 +10,6 @@ namespace ChatServer
     {
         TcpClient clientSocket;
         string clNo;
-        volatile static List<string> who = new List<string>();
 
         public void startClient(TcpClient inClientSocket, string clineNo)
         {
@@ -25,23 +24,15 @@ namespace ChatServer
             byte[] bytesFrom = new byte[1024];
             string dataFromClient = null;
             Byte[] sendBytes = new byte[1024];
-            string serverResponse = null;
             string rCount = null;
             requestCount = 0;
 
+            bool runningClient = true;
             bool loggedIn = false;
             String username = null;
             String password = null;
 
-            Dictionary<string, string> users = new Dictionary<string, string>()
-            {
-                { "Tom", "Tom11"},
-                { "David", "David22"},
-                { "Beth", "Beth33"},
-                { "John", "John44"}
-            };
-
-            while (true)
+            while (runningClient)
             {
                 try
                 {
@@ -57,10 +48,23 @@ namespace ChatServer
                     switch(dataFromClient)
                     {
                         case "who":
-                            serverResponse = String.Empty;
-                            foreach(string person in who)
+                            foreach(string person in Program.activeUsers.Keys)
                             {
-                                serverResponse += person + " ";
+                                Program.SendToUser(person, username, false, clientSocket, true);
+                            }
+                            break;
+
+                        case "logout":
+                            if(loggedIn)
+                            {
+                                runningClient = false;
+                                //Change to unicast
+                                Program.Broadcast("User " + username + " logged out.", username, true);
+                                Program.activeUsers.Remove(username);
+                            }
+                            else
+                            {
+                                Program.SendToUser("Cannot logout if not logged in.", username, false, clientSocket, true);
                             }
                             break;
 
@@ -76,43 +80,89 @@ namespace ChatServer
 
                                 if (username == null || password == null)
                                 {
-                                    serverResponse = "Login Failed.";
+                                    Program.SendToUser("Login Failed.", username, false, clientSocket, true);
                                 }
                                 else
                                 {
                                     string pass;
-                                    if(users.TryGetValue(username, out pass))
+                                    if(Program.users.TryGetValue(username, out pass))
                                     {
-                                        serverResponse = "Login Failed.";
-
                                         if (pass.Equals(password))
                                         {
-                                            serverResponse = "Login Accepted.";
-                                            who.Add(username);
+                                            if (Program.activeUsers.Count == Program.maxClients)
+                                            {
+                                                Program.SendToUser("Max number of users in the chat, try again later.", username, false, clientSocket, true);
+                                            }
+                                            else
+                                            {
+                                                Program.Broadcast(username + " has joined.", username, true);
+                                                Program.SendToUser("Login Accepted.", username, false, clientSocket, true);
+                                                Program.activeUsers.Add(username, clientSocket);
+                                                loggedIn = true;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Program.SendToUser("Login Failed! ", username, false, clientSocket, true);
                                         }
                                     }
                                     else
                                     {
-                                        serverResponse = "Login Failed.";
+                                        Program.SendToUser("Login Failed.", username, false, clientSocket, true);
                                     }
                                     
                                 }
                             }
+                            else if(dataFromClient.StartsWith("send all "))
+                            {
+                                if (loggedIn)
+                                {
+                                    string message = RemoveString(dataFromClient, "send all ");
+                                    Program.Broadcast(message, username, true);
+                                }
+                                else
+                                {
+                                    Program.SendToUser("You must be logged in to send messages.", username, false, clientSocket, true);
+                                }
+                            }
+                            else if(dataFromClient.StartsWith("send "))
+                            {
+                                if(loggedIn)
+                                {
+                                    string message = RemoveString(dataFromClient, "send ");
+                                    string[] pieces = message.Split(' ');
+
+                                    bool found = false;
+                                    foreach(string user in Program.activeUsers.Keys)
+                                    {
+                                        if(pieces[0].Equals(user))
+                                        {
+                                            found = true;
+                                            message = RemoveString(message, user + " ");
+                                            Program.SendToUser(message, user, true, Program.activeUsers[user], true);
+                                        }
+                                    }
+
+                                    if(!found)
+                                    {
+                                        Program.SendToUser("User you tried to send to is not in the chat", username, false, clientSocket, true);
+                                    }
+                                }
+                                else
+                                {
+                                    Program.SendToUser("You must be logged in to send messages.", username, false, clientSocket, true);
+                                }
+                            }
                             else
                             {
-                                serverResponse = "Could not understand the command: " + dataFromClient + ".";
+                                Program.SendToUser("Could not understand the command: " + dataFromClient + ".", username, false, clientSocket, true);
                             }
                             break;
                     }
-
-                    
-                    sendBytes = Encoding.ASCII.GetBytes(serverResponse);
-                    networkStream.Write(sendBytes, 0, sendBytes.Length);
-                    networkStream.Flush();
-                    Console.WriteLine(" >> " + serverResponse);
                 }
                 catch (InvalidOperationException ioe)
                 {
+                    Console.WriteLine(ioe);
                     break;
                 }
                 catch (Exception ex)
@@ -161,6 +211,5 @@ namespace ChatServer
                 }
             }
         }
-
     }
 }
